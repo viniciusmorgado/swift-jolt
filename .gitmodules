@@ -1,0 +1,6 @@
+[submodule "Vendor/joltc"]
+	path = Vendor/joltc
+	url = https://github.com/amerkoleci/joltc
+[submodule "Vendor/JoltPhysics"]
+	path = Vendor/JoltPhysics
+	url = https://github.com/jrouwe/JoltPhysics
