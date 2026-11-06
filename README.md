@@ -6,6 +6,12 @@ Swift bindings for [Jolt Physics](https://github.com/jrouwe/JoltPhysics) 5.6: in
 
 This package is in early development. Only engine initialization is currently exposed; the Swift API surface is still being built out on top of the `CJolt`/`joltc` bridge.
 
+## Determinism
+
+A simulation replays identically when it runs on the same build of the library with the same inputs in the same order. Results are not guaranteed to match across different builds or CPU architectures, such as arm64 and x86_64.
+
+Cross-platform determinism would require compiling with `-ffp-contract=off`, which SwiftPM only accepts through unsafe flags, and those prevent other packages from depending on this one by version.
+
 ## Layout
 
 - `Sources/Jolt` — the public Swift API.
