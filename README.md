@@ -15,13 +15,14 @@ Cross-platform determinism would require compiling with `-ffp-contract=off`, whi
 ## Layout
 
 - `Sources/Jolt` — the public Swift API.
-- `Vendor/joltc` — a C wrapper around Jolt Physics, exposed to Swift as the `CJolt` target.
+- `Sources/CJolt` — the header Swift imports `joltc` through, which sets the macros that change type layouts.
+- `Vendor/joltc` — a C wrapper around Jolt Physics, compiled by the `CJoltImpl` target.
 - `Vendor/JoltPhysics` — the vendored upstream Jolt Physics C++ engine.
 
 ## Requirements
 
 - Swift tools version 6.4
-- macOS 12+ or iOS 15+
+- macOS 15+, iOS 18+, tvOS 18+ or visionOS 2+
 
 ## Installation
 
@@ -47,9 +48,8 @@ Then add `Jolt` to your target's dependencies:
 ```swift
 import Jolt
 
-guard Jolt.initialize() else {
-    fatalError("Failed to initialize Jolt Physics")
-}
+try Jolt.initialize()
+defer { Jolt.shutdown() }
 ```
 
 ## Testing
@@ -84,7 +84,7 @@ The goal is to cover all of Jolt Physics 5.6. Features are ordered by how much a
 - [ ] Sensors (trigger volumes)
 - [ ] Forces, impulses, velocities and kinematic movement
 - [ ] Body access: `BodyInterface`, locking and non-locking variants, single and multi-body locks
-- [ ] Batch body insertion for level streaming †
+- [ ] Batch body insertion, removal and destruction for level streaming †
 - [ ] Friction and restitution, physics materials
 - [ ] Custom friction and restitution combine functions †
 - [ ] Convex shapes: sphere, box, capsule, tapered capsule, cylinder, tapered cylinder, triangle and convex hull
@@ -148,7 +148,7 @@ The goal is to cover all of Jolt Physics 5.6. Features are ordered by how much a
 - [ ] `PhysicsScene` for saving and loading whole scenes †
 - [ ] Reading creation settings back from bodies and constraints, to apply new ones or move them between physics systems †
 - [ ] Multiple physics systems
-- [ ] Large worlds through double precision, as an opt-in build configuration
+- [x] Large worlds through double precision, always enabled
 - [ ] Level of detail through simulation shape filters
 - [ ] Runtime terrain editing: changing height field heights and materials †
 - [ ] Debug renderer
@@ -240,6 +240,36 @@ Feature folders are plural and named after a Jolt concept (`Bodies`, `Shapes`, `
 - **`Shared` is internal.** It holds only what several features need, such as handle ownership and callback bridging. It has no public API and never depends on a feature.
 - **Everything public lives in a feature**, including math types, which live in `Features/Math`.
 - **Features use each other through their public API**, never through each other's bindings. The compiler can't enforce this one, so it's checked in code review.
+
+### Design decisions
+
+**Ownership**
+
+- If a live C object sits behind a type, it's a `final class` whose `deinit` calls the C destroy function: `Shape`, `PhysicsSystem`, `Constraint`, `Character`.
+- If a type is only data, it's a `struct`: settings, events, `Transform`. Settings are converted to C only when the object is created.
+- Bodies are referred to by `BodyID`, a `struct` that also identifies its world, and are destroyed with `destroyBody(_:)`. A body lives in the world, so dropping a reference to it must not delete it.
+- C layer objects can't be shared between physics systems, because `JPH_PhysicsSystem_Destroy` deletes them.
+
+**Math and precision**
+
+- Vectors are `SIMD3<Float>`, rotations `simd_quatf` and matrices `simd_float4x4`.
+- Positions are `SIMD3<Double>`, and Jolt always builds with `JPH_DOUBLE_PRECISION`.
+- `BridgeLayoutTest` checks that C and Swift agree on the size of `JPH_RVec3`. A mismatch doesn't fail to compile, it corrupts data.
+
+**Concurrency**
+
+- `PhysicsSystem` is a `final class` that isn't `Sendable`, so callers decide where it lives. Adding `Sendable` later is compatible, removing it isn't.
+- Contact callbacks run on several threads while every body is locked. By default they only queue events, which the caller drains after `update`.
+- Callbacks that must act during the step are `@Sendable` and receive a restricted context, never the world. The compiler then rejects capturing the world, which would deadlock.
+
+**Errors**
+
+- Failures caused by data or capacity, such as an invalid shape or a full world, `throw`.
+- Missing things, such as a removed body or a raycast with no hit, return `nil`.
+- `update` returns its warnings instead of throwing, because the simulation keeps running.
+- Misusing the API, such as passing a `BodyID` from another world, fails a `precondition`.
+- Destroying a body that no longer exists does nothing and returns `false`.
+- The public error type is `JoltError`, a `struct`, so new errors don't break clients.
 
 ### Adding a feature
 
