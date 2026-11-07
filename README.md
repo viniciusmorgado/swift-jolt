@@ -29,7 +29,7 @@ Add SwiftJolt as a dependency in your `Package.swift`:
 
 ```swift
 dependencies: [
-    .package(url: "<repository-url>", branch: "main")
+    .package(url: "https://github.com/viniciusmorgado/swift-jolt", branch: "main")
 ]
 ```
 
@@ -38,7 +38,7 @@ Then add `Jolt` to your target's dependencies:
 ```swift
 .target(
     name: "YourTarget",
-    dependencies: ["Jolt"]
+    dependencies: [.product(name: "Jolt", package: "swift-jolt")]
 )
 ```
 
