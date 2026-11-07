@@ -3,7 +3,7 @@
 
 import PackageDescription
 
-// These must stay identical for JoltPhysics and CJolt: they change the layout of
+// These must stay identical for JoltPhysics and CJoltImpl: they change the layout of
 // Jolt's types, and the library is compiled separately from the wrapper.
 let joltDefines: [CXXSetting] = [
     .define("JPH_OBJECT_LAYER_BITS", to: "32"),
