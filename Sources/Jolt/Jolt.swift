@@ -1,6 +1,18 @@
-// The Swift Programming Language
-// https://docs.swift.org/swift-book
+public struct JoltError : Error, Hashable, Sendable, CustomStringConvertible {
+    public let description: String
+    private init (_ description: String) {
+        self.description = description
+    }
+    
+    public static let initializationFailed = JoltError("Jolt Physics failed to initialize.")
+}
 
-internal import CJolt
+public func initialize() throws(JoltError) {
+    guard initializeJolt() else {
+        throw .initializationFailed
+    }
+}
 
-public func initialize() -> Bool { JPH_Init() }
+public func shutdown() {
+    shutdownJolt()
+}
