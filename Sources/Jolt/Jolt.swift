@@ -3,6 +3,4 @@
 
 internal import CJolt
 
-public enum Jolt {
-    public static func initialize() -> Bool { JPH_Init() }
-}
+public func initialize() -> Bool { JPH_Init() }
