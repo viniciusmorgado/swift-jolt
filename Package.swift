@@ -3,10 +3,20 @@
 
 import PackageDescription
 
+// These must stay identical for JoltPhysics and CJolt: they change the layout of
+// Jolt's types, and the library is compiled separately from the wrapper.
 let joltDefines: [CXXSetting] = [
     .define("JPH_OBJECT_LAYER_BITS", to: "32"),
+    // joltc declares the debug renderer API unconditionally, so it stays on in every configuration.
     .define("JPH_DEBUG_RENDERER"),
-    .define("JPH_PROFILE_ENABLED"),
+    .define("JPH_PROFILE_ENABLED", .when(configuration: .debug)),
+    // SwiftPM does not define NDEBUG in release builds, which would leave JPH_DEBUG on.
+    .define("NDEBUG", .when(configuration: .release)),
+]
+
+let swiftSettings: [SwiftSetting] = [
+    .enableUpcomingFeature("NonisolatedNonsendingByDefault"),
+    .enableUpcomingFeature("InferIsolatedConformances"),
 ]
 
 let package = Package(
@@ -28,13 +38,11 @@ let package = Package(
                , cxxSettings: joltDefines ),
         .target( name: "Jolt"
                , dependencies: ["CJolt"]
-               , swiftSettings: [.enableUpcomingFeature("ApproachableConcurrency")]),
+               , swiftSettings: swiftSettings ),
         .testTarget(
             name: "JoltTests",
             dependencies: ["Jolt"],
-            swiftSettings: [
-                .enableUpcomingFeature("ApproachableConcurrency"),
-            ],
+            swiftSettings: swiftSettings,
         ),
     ],
     cxxLanguageStandard: .cxx17
