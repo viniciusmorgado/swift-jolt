@@ -21,7 +21,7 @@ let swiftSettings: [SwiftSetting] = [
 
 let package = Package(
     name: "swift-jolt",
-    platforms: [.macOS(.v15), .iOS(.v15), .tvOS(.v18), .visionOS(.v2)],
+    platforms: [.macOS(.v15), .iOS(.v18), .tvOS(.v18), .visionOS(.v2)],
     products: [.library(name: "Jolt", targets: ["Jolt"])],
     targets: [
         .target( name: "JoltPhysics"
